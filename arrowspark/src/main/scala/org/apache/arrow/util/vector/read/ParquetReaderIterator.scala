@@ -43,7 +43,7 @@ class ParquetReaderIterator(protected val file: PartitionedFile, protected val r
     val options = ParquetReadOptions.builder()
       .withMaxAllocationInBytes(Integer.MAX_VALUE)
       .withMetadataFilter(ParquetMetadataConverter.range(file.start, file.start+file.length)).build()
-    val reader = ParquetFileReader.open(HadoopInputFile.fromPath(new Path(file.filePath), new Configuration()), options)
+    val reader = ParquetFileReader.open(HadoopInputFile.fromPath(new Path(file.filePath.toString()), new Configuration()), options)
     val tc = Option(TaskContext.get())
     tc.getOrElse( throw new RuntimeException("Not in a Spark Context") ).addTaskCompletionListener[Unit](_ => reader.close())
     reader
@@ -125,4 +125,3 @@ private class DumpGroupConverter extends GroupConverter {
   final def end(): Unit = {}
   final def getConverter(fieldIndex: Int) = new DumpConverter
 }
-

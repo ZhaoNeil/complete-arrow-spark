@@ -8,7 +8,7 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
     <properties>
-        <spark.version>3.3.0-SNAPSHOT</spark.version>
+        <spark.version>3.5.0-SNAPSHOT</spark.version>
     </properties>
 
     <repositories>
@@ -49,42 +49,42 @@
 
     <build>
         <plugins>
-            <plugin>
-                <!--    Plugin to build scala source files    -->
-                <groupId>org.scala-tools</groupId>
-                <artifactId>maven-scala-plugin</artifactId>
-                <version>2.15.2</version>
-                <executions>
-                    <execution>
-                        <id>compile</id>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                        <phase>compile</phase>
-                    </execution>
-                    <execution>
-                        <id>test-compile</id>
-                        <goals>
-                            <goal>testCompile</goal>
-                        </goals>
-                        <phase>test-compile</phase>
-                    </execution>
-                    <execution>
-                        <phase>process-resources</phase>
-                        <goals>
-                            <goal>compile</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <source>8</source>
-                    <target>8</target>
-                </configuration>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                &lt;!&ndash;    Plugin to build scala source files    &ndash;&gt;-->
+            <!--                <groupId>org.scala-tools</groupId>-->
+            <!--                <artifactId>maven-scala-plugin</artifactId>-->
+            <!--                <version>2.15.2</version>-->
+            <!--                <executions>-->
+            <!--                    <execution>-->
+            <!--                        <id>compile</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>compile</goal>-->
+            <!--                        </goals>-->
+            <!--                        <phase>compile</phase>-->
+            <!--                    </execution>-->
+            <!--                    <execution>-->
+            <!--                        <id>test-compile</id>-->
+            <!--                        <goals>-->
+            <!--                            <goal>testCompile</goal>-->
+            <!--                        </goals>-->
+            <!--                        <phase>test-compile</phase>-->
+            <!--                    </execution>-->
+            <!--                    <execution>-->
+            <!--                        <phase>process-resources</phase>-->
+            <!--                        <goals>-->
+            <!--                            <goal>compile</goal>-->
+            <!--                        </goals>-->
+            <!--                    </execution>-->
+            <!--                </executions>-->
+            <!--            </plugin>-->
+            <!--            <plugin>-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-compiler-plugin</artifactId>-->
+            <!--                <configuration>-->
+            <!--                    <source>8</source>-->
+            <!--                    <target>8</target>-->
+            <!--                </configuration>-->
+            <!--            </plugin>-->
             <plugin>
                 <!--    Plugin to build dependency jar     -->
                 <artifactId>maven-assembly-plugin</artifactId>
@@ -94,13 +94,12 @@
                     </descriptorRefs>
                 </configuration>
             </plugin>
-            <plugin>
-                <!--   Run Unit tests     -->
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-surefire-plugin</artifactId>
-                <version>2.22.2</version>
-            </plugin>
+            <!--            <plugin>-->
+            <!--                &lt;!&ndash;   Run Unit tests     &ndash;&gt;-->
+            <!--                <groupId>org.apache.maven.plugins</groupId>-->
+            <!--                <artifactId>maven-surefire-plugin</artifactId>-->
+            <!--                <version>2.22.2</version>-->
+            <!--            </plugin>-->
         </plugins>
     </build>
 </project>
-

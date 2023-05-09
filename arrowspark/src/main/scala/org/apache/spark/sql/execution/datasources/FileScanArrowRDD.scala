@@ -32,7 +32,7 @@ import scala.reflect.runtime.universe._
 class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
                         readFunction: (PartitionedFile, RootAllocator) => Iterator[ArrowColumnarBatchRow],
                         @transient val filePartitions: Seq[ArrowFilePartition])
-                                     extends RDD[ArrowColumnarBatchRow](sparkSession.sparkContext, Nil) with ArrowRDD {
+  extends RDD[ArrowColumnarBatchRow](sparkSession.sparkContext, Nil) with ArrowRDD {
 
   private val ignoreCorruptFiles = sparkSession.sessionState.conf.ignoreCorruptFiles
   private val ignoreMissingFiles = sparkSession.sessionState.conf.ignoreMissingFiles
@@ -91,7 +91,7 @@ class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
         currentFile = Option(nextFile)
         logInfo(s"Reading File $nextFile")
         // Sets InputFileBlockHolder for the file block's information
-        InputFileBlockHolder.set(nextFile.filePath, nextFile.start, nextFile.length)
+        InputFileBlockHolder.set(nextFile.filePath.toString(), nextFile.start, nextFile.length)
 
         resetCurrentIterator()
         if (ignoreMissingFiles || ignoreCorruptFiles) {
@@ -142,7 +142,7 @@ class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
         } catch {
           case e: SchemaColumnConvertNotSupportedException =>
             throw QueryExecutionErrors.unsupportedSchemaColumnConvertError(
-              nextFile.filePath, e.getColumn, e.getLogicalType, e.getPhysicalType, e)
+              nextFile.filePath.toString(), e.getColumn, e.getLogicalType, e.getPhysicalType, e)
           case e: ParquetDecodingException =>
             if (e.getCause.isInstanceOf[SparkUpgradeException]) {
               throw e.getCause
@@ -161,7 +161,7 @@ class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
         // InterruptibleIterator, but we inline it here instead of wrapping the iterator in order
         // to avoid performance overhead.
         context.killTaskIfInterrupted()
-//        files.hasNext
+        //        files.hasNext
         (currentIterator.isDefined && currentIterator.get.hasNext) || nextIterator()
       }
 
@@ -179,9 +179,9 @@ class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
 
       override def close(): Unit = {
         // TODO: not required anymore?
-//        currentIterator.foreach { case iter: Iterator[ArrowColumnarBatchRow] => iter.foreach { batch =>
-//          batch.close()
-//        }}
+        //        currentIterator.foreach { case iter: Iterator[ArrowColumnarBatchRow] => iter.foreach { batch =>
+        //          batch.close()
+        //        }}
         incTaskInputMetricsBytesRead()
         InputFileBlockHolder.unset()
         resetCurrentIterator()
@@ -192,24 +192,24 @@ class FileScanArrowRDD (@transient protected val sparkSession: SparkSession,
     context.addTaskCompletionListener[Unit](_ => {
       iterator.close()
       // check if we are done with this root
-//      roots.foreach( root => root.getChildAllocators.forEach( child => assert(child.getAllocatedMemory == 0) ))
-//      roots.foreach{ root =>
-//        // TODO: tmp?
-//        try {
-//          root.close()
-//        } catch {
-//          case e: Throwable =>
-//            println("--------------DEBUG--------------")
-//            println(root.toVerboseString)
-//            println("---------------------------------")
-//            throw e
-//        }
+      //      roots.foreach( root => root.getChildAllocators.forEach( child => assert(child.getAllocatedMemory == 0) ))
+      //      roots.foreach{ root =>
+      //        // TODO: tmp?
+      //        try {
+      //          root.close()
+      //        } catch {
+      //          case e: Throwable =>
+      //            println("--------------DEBUG--------------")
+      //            println(root.toVerboseString)
+      //            println("---------------------------------")
+      //            throw e
+      //        }
 
-//        if (root.getAllocatedMemory != 0)
-//          root.releaseBytes(root.getAllocatedMemory)
-//        root.close()
-//      }
-//      roots.foreach( root => if (root.getAllocatedMemory == 0) root.close())
+      //        if (root.getAllocatedMemory != 0)
+      //          root.releaseBytes(root.getAllocatedMemory)
+      //        root.close()
+      //      }
+      //      roots.foreach( root => if (root.getAllocatedMemory == 0) root.close())
     })
 
     iterator

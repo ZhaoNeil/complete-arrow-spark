@@ -20,12 +20,12 @@ trait ArrowFileFormat extends FileFormat {
   /** Returns a function that can be used to read a single file in as an Iterator of Array[ValueVector]
    * Caller should close batches in Iterator */
   def buildArrowReaderWithPartitionValues(sparkSession: SparkSession,
-                                     dataSchema: StructType,
-                                     partitionSchema: StructType,
-                                     requiredSchema: StructType,
-                                     filters: Seq[Filter],
-                                     options: Map[String, String],
-                                     hadoopConf: Configuration) : (PartitionedFile, RootAllocator) => Iterator[ArrowColumnarBatchRow]
+                                          dataSchema: StructType,
+                                          partitionSchema: StructType,
+                                          requiredSchema: StructType,
+                                          filters: Seq[Filter],
+                                          options: Map[String, String],
+                                          hadoopConf: Configuration) : (PartitionedFile, RootAllocator) => Iterator[ArrowColumnarBatchRow]
 
   override def supportBatch(sparkSession: SparkSession, dataSchema: StructType): Boolean = true
 
@@ -56,8 +56,13 @@ case class ArrowScanExec(fs: FileSourceScanExec) extends DataSourceScanExec with
 
     // Filter files with bucket pruning if possible
     val bucketingEnabled = fsRelation.sparkSession.sessionState.conf.bucketingEnabled
-    val shouldProcess: Path => Boolean = filePath =>
-      fs.optionalBucketSet.forall { bucketSet => bucketingEnabled || BucketingUtils.getBucketId(filePath.getName).forall(bucketSet.get) }
+    val shouldProcess: Path => Boolean = fs.optionalBucketSet match {
+      case Some(bucketSet) if bucketingEnabled =>
+        // Do not prune the file if bucket file name is invalid
+        filePath => BucketingUtils.getBucketId(filePath.getName).forall(bucketSet.get)
+      case _ =>
+        _ => true
+    }
 
     val splitFiles = selectedPartitions.flatMap { partition =>
       partition.files.flatMap { file =>
@@ -78,7 +83,7 @@ case class ArrowScanExec(fs: FileSourceScanExec) extends DataSourceScanExec with
         } else {
           Seq.empty
         }
-      }.sortBy(_.filePath)
+      }
     }.sortBy(_.length)(implicitly[Ordering[Long]].reverse)
 
     val partitions =
@@ -100,7 +105,7 @@ case class ArrowScanExec(fs: FileSourceScanExec) extends DataSourceScanExec with
         }
       }.groupBy { f =>
         BucketingUtils
-          .getBucketId(new Path(f.filePath).getName)
+          .getBucketId(new Path(f.filePath.toString()).getName)
           .getOrElse(throw new IllegalStateException(s"Invalid bucket file ${f.filePath}"))
       }
 

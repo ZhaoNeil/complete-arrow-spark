@@ -108,7 +108,7 @@ case class ArrowFileSourceStrategy(spark: SparkSession) extends SparkStrategy wi
   }
 
   def apply(plan: LogicalPlan): Seq[SparkPlan] = plan match {
-    case ScanOperation(projects, filters,
+    case ScanOperation(projects, stayUpFilters, filters,
     l @ LogicalRelation(fsRelation: HadoopFsRelation, _, table, _)) =>
       // Filters on this relation fall into four categories based on where we can use them to avoid
       // reading unneeded data:
@@ -166,7 +166,7 @@ case class ArrowFileSourceStrategy(spark: SparkSession) extends SparkStrategy wi
       val afterScanFilters = filterSet -- partitionKeyFilters.filter(_.references.nonEmpty)
       logInfo(s"Post-Scan Filters: ${afterScanFilters.mkString(",")}")
 
-      val filterAttributes = AttributeSet(afterScanFilters)
+      val filterAttributes = AttributeSet(afterScanFilters ++ stayUpFilters)
       val requiredExpressions: Seq[NamedExpression] = filterAttributes.toSeq ++ projects
       val requiredAttributes = AttributeSet(requiredExpressions)
 

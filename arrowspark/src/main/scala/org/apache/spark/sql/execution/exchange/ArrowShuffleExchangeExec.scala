@@ -13,9 +13,8 @@ import org.apache.spark.sql.column.ArrowColumnarBatchRow
 import org.apache.spark.sql.column.utils.{ArrowColumnarBatchRowEncoders, ArrowColumnarBatchRowSerializer}
 import org.apache.spark.sql.execution._
 import org.apache.spark.sql.execution.metric.{SQLMetric, SQLMetrics, SQLShuffleReadMetricsReporter, SQLShuffleWriteMetricsReporter}
-import org.apache.spark.sql.internal.ArrowConf
 import org.apache.spark.util.MutablePair
-import org.apache.spark.{ArrowRangePartitioner, MapOutputStatistics, ShuffleDependency, TaskContext}
+import org.apache.spark.{ArrowRangePartitioner, MapOutputStatistics, PartitionIdPassthrough, ShuffleDependency, TaskContext}
 
 import scala.concurrent.Future
 
@@ -42,8 +41,7 @@ case class ArrowShuffleExchangeExec(override val outputPartitioning: Partitionin
       child.output,
       outputPartitioning,
       serializer,
-      writeMetrics,
-      ArrowConf.get(sparkContext, ArrowConf.BUCKETSEARCH_PARALLEL))
+      writeMetrics)
     metrics("numPartitions").set(dep.partitioner.numPartitions)
     val executionId = sparkContext.getLocalProperty(SQLExecution.EXECUTION_ID_KEY)
     SQLMetrics.postDriverMetricUpdates(
@@ -53,6 +51,7 @@ case class ArrowShuffleExchangeExec(override val outputPartitioning: Partitionin
 
   override def numMappers: Int = shuffleDependency.rdd.getNumPartitions
   override def numPartitions: Int = shuffleDependency.partitioner.numPartitions
+  override def advisoryPartitionSize: Option[Long] = None
 
   override protected def mapOutputStatisticsFuture: Future[MapOutputStatistics] = {
     if (inputRDD.getNumPartitions == 0) {
@@ -82,12 +81,11 @@ case class ArrowShuffleExchangeExec(override val outputPartitioning: Partitionin
 
 object ArrowShuffleExchangeExec {
   def prepareShuffleDependency(
-      rdd: RDD[InternalRow],
-      outputAttributes: Seq[Attribute],
-      newPartitioning: Partitioning,
-      serializer: Serializer,
-      writeMetrics: Map[String, SQLMetric],
-      parallel: Boolean) : ShuffleDependency[Array[Int], InternalRow, InternalRow] = {
+                                rdd: RDD[InternalRow],
+                                outputAttributes: Seq[Attribute],
+                                newPartitioning: Partitioning,
+                                serializer: Serializer,
+                                writeMetrics: Map[String, SQLMetric]) : ShuffleDependency[Array[Int], InternalRow, InternalRow] = {
     assert(newPartitioning.isInstanceOf[RangePartitioning])
 
     val RangePartitioning(sortingExpressions, numPartitions) = newPartitioning.asInstanceOf[RangePartitioning]
@@ -104,7 +102,7 @@ object ArrowShuffleExchangeExec {
       })
     }
 
-    val part = new ArrowRangePartitioner(numPartitions, rddForSampling, sortingExpressions, parallel, ascending = true)
+    val part = new ArrowRangePartitioner(numPartitions, rddForSampling, sortingExpressions, parallel = true, ascending = true)
     val rddWithPartitionIds = rdd.mapPartitionsWithIndexInternal( (_, iter) => {
       val projection = GenerateArrowColumnarBatchRowProjection.create(sortingExpressions.map(_.child), outputAttributes)
       val getPartitionKey: InternalRow => InternalRow = row => projection(row)

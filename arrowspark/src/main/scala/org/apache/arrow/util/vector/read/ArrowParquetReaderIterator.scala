@@ -5,7 +5,7 @@ import org.apache.arrow.dataset.file.{FileFormat, FileSystemDatasetFactory}
 import org.apache.arrow.dataset.jni.NativeMemoryPool
 import org.apache.arrow.dataset.scanner.{ScanOptions, ScanTask, Scanner}
 import org.apache.arrow.memory.RootAllocator
-import org.apache.arrow.vector.{VectorLoader, VectorSchemaRoot}
+import org.apache.arrow.vector.{VectorLoader, VectorSchemaRoot, VectorUnloader}
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.column
 import org.apache.spark.sql.column.AllocationManager.createAllocator
@@ -18,7 +18,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 import scala.collection.mutable.ArrayBuffer
 
 /** inspired from: https://arrow.apache.org/cookbook/java/dataset.html#query-parquet-file */
-class ArrowParquetReaderIterator(batchSize: Long, protected val file: PartitionedFile, protected val rootAllocator: RootAllocator) extends Iterator[ArrowColumnarBatchRow] with AutoCloseable {
+class ArrowParquetReaderIterator(protected val file: PartitionedFile, protected val rootAllocator: RootAllocator) extends Iterator[ArrowColumnarBatchRow] with AutoCloseable {
   if (file.length > column.AllocationManager.perAllocatorSize)
     throw new RuntimeException("[ArrowParquetReaderIterator] Partition is too large")
 
@@ -34,34 +34,29 @@ class ArrowParquetReaderIterator(batchSize: Long, protected val file: Partitione
   }
 
   val scanner: Scanner = {
-    Resources.autoCloseTryGet(new FileSystemDatasetFactory(rootAllocator, NativeMemoryPool.getDefault, FileFormat.PARQUET, file.filePath)) { factory =>
+    Resources.autoCloseTryGet(new FileSystemDatasetFactory(rootAllocator, NativeMemoryPool.getDefault, FileFormat.PARQUET, file.filePath.toString())) { factory =>
       val dataset = factory.finish()
-      val scanner = dataset.newScan(new ScanOptions(batchSize))
+      // TODO: make configurable?
+      val scanner = dataset.newScan(new ScanOptions(Integer.MAX_VALUE))
       scheduleClose(dataset, scanner)
       scanner
     }
   }
-  val scanTasks: util.Iterator[_ <: ScanTask] = scanner.scan().iterator()
+
   val root: VectorSchemaRoot = {
     val root = VectorSchemaRoot.create(scanner.schema(), rootAllocator)
     scheduleClose(root)
     root
   }
-  val loader: VectorLoader = new VectorLoader(root)
 
-  var internalIter: Option[ScanTask.BatchIterator] = None
+  val arrowReader = scanner.scanBatches()
+  val unloader: VectorUnloader = new VectorUnloader(arrowReader.getVectorSchemaRoot)
 
-  override def hasNext: Boolean = internalIter.exists( _.hasNext ) || scanTasks.hasNext
+  override def hasNext: Boolean = arrowReader.loadNextBatch()
 
   override def next(): ArrowColumnarBatchRow = {
-    if (internalIter.isEmpty || internalIter.exists(!_.hasNext)) {
-      val iter = scanTasks.next().execute()
-      scheduleClose(iter)
-      internalIter = Option(iter)
-    }
-
-    Resources.autoCloseTryGet(internalIter
-      .getOrElse( throw new RuntimeException("[ArrowParquetReaderIterator] Could not set internalIter")).next()) { recordBatch =>
+    Resources.autoCloseTryGet(unloader.getRecordBatch) { recordBatch =>
+      val loader: VectorLoader = new VectorLoader(root)
       loader.load(recordBatch)
       /** Transfer ownership to new batch */
       Resources.autoCloseTraversableTryGet(root.getFieldVectors.asScala.toIterator) { data =>
@@ -71,7 +66,7 @@ class ArrowParquetReaderIterator(batchSize: Long, protected val file: Partitione
           tp.splitAndTransfer(0, fieldVector.getValueCount)
           new ArrowColumnVector(tp.getTo)
         }
-        new ArrowColumnarBatchRow(allocator, transferred.toArray, recordBatch.getLength)
+        new ArrowColumnarBatchRow(allocator, transferred.toArray, root.getRowCount)
       }
     }
   }
