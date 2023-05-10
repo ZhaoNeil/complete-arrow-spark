@@ -24,7 +24,7 @@ object EvaluationSuite {
     fw.flush()
 
     val cdf: ColumnDataFrame =
-      new ColumnDataFrameReader(spark).format("org.apache.spark.sql.execution.SimpleParquetArrowFileFormat")
+      new ColumnDataFrameReader(spark).format("org.apache.spark.sql.execution.datasources.SimpleParquetArrowFileFormat")
         .loadDF(file)
     val cCols = cdf.columns
     assert(cCols.length > 0)

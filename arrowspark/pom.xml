@@ -15,8 +15,8 @@
     <java.version>11</java.version>
     <scala.version>2.12.17</scala.version>
     <arrow.version>11.0.0</arrow.version>
-    <parquet.version>1.12.3</parquet.version>
-    <spark.version>3.5.0-SNAPSHOT</spark.version>
+    <parquet.version>1.13.0</parquet.version>
+    <spark.version>3.4.0</spark.version>
     <jackson.version>2.14.0</jackson.version>
     <netty.version>4.1.74.Final</netty.version>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -83,12 +83,6 @@
       <artifactId>arrow-vector</artifactId>
       <version>${arrow.version}</version>
     </dependency>
-    <!--    <dependency>-->
-    <!--      <groupId>org.apache.arrow</groupId>-->
-    <!--      <artifactId>arrow-memory</artifactId>-->
-    <!--      <version>${arrow.version}</version>-->
-    <!--      <type>pom</type>-->
-    <!--    </dependency>-->
     <dependency>
       <groupId>org.apache.arrow</groupId>
       <artifactId>arrow-memory-unsafe</artifactId>

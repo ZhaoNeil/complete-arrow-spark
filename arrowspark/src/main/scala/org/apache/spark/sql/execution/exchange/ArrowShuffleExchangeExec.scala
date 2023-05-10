@@ -51,7 +51,6 @@ case class ArrowShuffleExchangeExec(override val outputPartitioning: Partitionin
 
   override def numMappers: Int = shuffleDependency.rdd.getNumPartitions
   override def numPartitions: Int = shuffleDependency.partitioner.numPartitions
-  override def advisoryPartitionSize: Option[Long] = None
 
   override protected def mapOutputStatisticsFuture: Future[MapOutputStatistics] = {
     if (inputRDD.getNumPartitions == 0) {
