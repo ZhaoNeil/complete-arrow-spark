@@ -36,11 +36,12 @@ trait ArrowRDD extends RDD[ArrowColumnarBatchRow] {
       val stageId = context.stageId()
       context.addTaskCompletionListener[Unit]( _ =>
         try {
-          arrowPartition.allocator.close()
+//          arrowPartition.allocator.close()
           Reporter.report(new Directory(new File(reportDirectory)), executorId = executorId, stageId = stageId.toString, partitionId=split.toString)
         } catch {
           case e: Throwable =>
             println("---------------DEBUG------------------")
+            println("ArrowPartition")
             println(arrowPartition.allocator.toVerboseString)
             println("--------------------------------------")
             throw e

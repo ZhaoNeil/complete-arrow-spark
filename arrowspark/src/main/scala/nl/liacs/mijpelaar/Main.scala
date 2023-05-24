@@ -33,7 +33,7 @@ class Main extends Callable[Unit] {
   @picocli.CommandLine.Option(names = Array("-c", "--cache", "--cache-warmer"))
   private var cache_warmer: Int = 5
   @picocli.CommandLine.Option(names = Array("-r", "--runs", "--nr-runs"))
-  private var nr_runs: Int = 30
+  private var nr_runs: Int = 1
   @picocli.CommandLine.Option(names = Array("--log-dir"))
   private var log_dir: Path = Paths.get("", "output")
   @picocli.CommandLine.Option(names = Array("--log-file"))
